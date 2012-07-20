@@ -24,6 +24,10 @@ LOCAL_SHARED_LIBRARIES := \
     libtinyalsa \
     libmedia
 
+ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
+LOCAL_CFLAGS += -DUSE_565
+endif
+
 LOCAL_MODULE:= bootanimation
 
 ifdef TARGET_32_BIT_SURFACEFLINGER
