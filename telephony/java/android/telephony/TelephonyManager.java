@@ -991,6 +991,14 @@ public class TelephonyManager {
         return retVal;
     }
 
+    /**
+     * Return if the current radio is LTE on GSM
+     * @hide
+     */
+    public static int getLteOnGsmModeStatic() {
+        return SystemProperties.getInt(TelephonyProperties.PROPERTY_LTE_ON_GSM_DEVICE, 0);
+    }
+
     //
     //
     // Current Network
@@ -1174,6 +1182,11 @@ public class TelephonyManager {
         }
         return ratClassName;
     }
+
+    /** Current network is DC-HSPAP
+    * @hide
+    */
+    public static final int NETWORK_TYPE_DCHSPAP = 30;
 
     /**
      * @return the NETWORK_TYPE_xxxx for current data connection.

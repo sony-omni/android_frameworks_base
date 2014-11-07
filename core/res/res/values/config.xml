@@ -2083,4 +2083,13 @@
     <string-array translatable="false" name="config_sms_convert_destination_number_support">
         <item>false</item>
     </string-array>
+
+    <!-- Omni -->
+  
+    <!-- Boolean to enable stk functionality on Samsung phones -->
+    <bool name="config_samsung_stk">false</bool>
+
+    <!-- If this value is true, we handle Samsung CDMA's message ID method -->
+    <bool name="config_smsSamsungCdmaAlternateMessageIDEncoding">false</bool>
+
 </resources>
