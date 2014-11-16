@@ -384,6 +384,7 @@
 
     <!-- Title of dialog to confirm rebooting into safe mode. [CHAR LIMIT=50] -->
     <string name="reboot_safemode_title">Reboot to safe mode</string>
+    <string name="reboot_title">Reboot</string>
 
     <!-- Shutdown Confirmation Dialog.  Message in the confirmation dialog
          when the user asks to reboot into safe mode. [CHAR LIMIT=NONE] -->
@@ -398,6 +399,10 @@
          be a confirmation dialog.  This is the message. -->
     <string name="reboot_confirm" product="tablet">Your tablet will reboot.</string>
     <string name="reboot_confirm" product="default">Your phone will reboot.</string>
+    <!-- Reboot Confirmation Dialog.  Message in the confirmation dialog
+         when the user asks to reboot. [CHAR LIMIT=NONE] -->
+    <string name="reboot_confirm">Do you want to reboot?</string>
+
 
     <!-- Recent Tasks dialog: title
      TODO: this should move to SystemUI.apk, but the code for the old
