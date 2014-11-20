@@ -2205,4 +2205,7 @@
   <java-symbol type="bool" name="config_sms_ringtone_incall" />
 
   <java-symbol type="array" name="config_sms_convert_destination_number_support" />
+
+  <!-- omni additions -->
+  <java-symbol type="bool" name="config_offscreenGestureSupport" />
 </resources>
