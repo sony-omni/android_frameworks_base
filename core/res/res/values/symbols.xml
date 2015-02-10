@@ -2237,4 +2237,5 @@
   <java-symbol type="bool" name="config_powerProfilesSupported" />
 
   <java-symbol type="dimen" name="max_avatar_size" />
+  <java-symbol type="array" name="config_sms_convert_destination_number_support" />
 </resources>
