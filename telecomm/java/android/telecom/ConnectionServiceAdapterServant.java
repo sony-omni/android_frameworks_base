@@ -17,6 +17,7 @@
 package android.telecom;
 
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
@@ -57,6 +58,11 @@ final class ConnectionServiceAdapterServant {
     private static final int MSG_SET_ADDRESS = 18;
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
+    private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 21;
+    private static final int MSG_SET_PHONE_ACCOUNT = 22;
+    private static final int MSG_SET_CALL_SUBSTATE = 23;
+    private static final int MSG_SET_EXTRAS = 24;
+    private static final int MSG_ADD_EXISTING_CONNECTION = 25;
 
     private final IConnectionServiceAdapter mDelegate;
 
@@ -87,6 +93,16 @@ final class ConnectionServiceAdapterServant {
                 case MSG_SET_ACTIVE:
                     mDelegate.setActive((String) msg.obj);
                     break;
+                case MSG_SET_EXTRAS: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        mDelegate.setExtras(
+                                (String) args.arg1, (Bundle) args.arg2);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
                 case MSG_SET_RINGING:
                     mDelegate.setRinging((String) msg.obj);
                     break;
@@ -97,6 +113,17 @@ final class ConnectionServiceAdapterServant {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         mDelegate.setDisconnected((String) args.arg1, (DisconnectCause) args.arg2);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        mDelegate.setDisconnectedWithSsNotification(
+                                (String) args.arg1, args.argi1, (String) args.arg2,
+                                 args.argi2, args.argi3);
                     } finally {
                         args.recycle();
                     }
@@ -199,6 +226,30 @@ final class ConnectionServiceAdapterServant {
                     }
                     break;
                 }
+                case MSG_SET_PHONE_ACCOUNT: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        mDelegate.setPhoneAccountHandle(
+                                (String) args.arg1, (PhoneAccountHandle) args.arg2);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_CALL_SUBSTATE: {
+                    mDelegate.setCallSubstate((String) msg.obj, msg.arg1);
+                    break;
+                }
+                case MSG_ADD_EXISTING_CONNECTION: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        mDelegate.addExistingConnection(
+                                (String) args.arg1, (ParcelableConnection) args.arg2);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
             }
         }
     };
@@ -222,6 +273,14 @@ final class ConnectionServiceAdapterServant {
         }
 
         @Override
+        public void setExtras(String callId, Bundle extras) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = extras;
+            mHandler.obtainMessage(MSG_SET_EXTRAS, args).sendToTarget();
+        }
+
+        @Override
         public void setRinging(String connectionId) {
             mHandler.obtainMessage(MSG_SET_RINGING, connectionId).sendToTarget();
         }
@@ -238,6 +297,20 @@ final class ConnectionServiceAdapterServant {
             args.arg1 = connectionId;
             args.arg2 = disconnectCause;
             mHandler.obtainMessage(MSG_SET_DISCONNECTED, args).sendToTarget();
+        }
+
+        @Override
+        public void setDisconnectedWithSsNotification(
+                String connectionId, int disconnectCause, String disconnectMessage,
+                        int type, int code) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = connectionId;
+            args.arg2 = disconnectMessage;
+            args.argi1 = disconnectCause;
+            args.argi2 = type;
+            args.argi3 = code;
+            mHandler.obtainMessage(MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION,
+                    args).sendToTarget();
         }
 
         @Override
@@ -344,6 +417,29 @@ final class ConnectionServiceAdapterServant {
             args.arg1 = connectionId;
             args.arg2 = conferenceableConnectionIds;
             mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
+        }
+
+        @Override
+        public final void setPhoneAccountHandle(String connectionId, PhoneAccountHandle pHandle) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = connectionId;
+            args.arg2 = pHandle;
+            mHandler.obtainMessage(MSG_SET_PHONE_ACCOUNT, args).sendToTarget();
+        }
+
+        @Override
+        public void setCallSubstate(String connectionId, int callSubstate) {
+            mHandler.obtainMessage(MSG_SET_CALL_SUBSTATE, callSubstate, 0,
+                connectionId).sendToTarget();
+        }
+
+        @Override
+        public final void addExistingConnection(
+                String connectionId, ParcelableConnection connection) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = connectionId;
+            args.arg2 = connection;
+            mHandler.obtainMessage(MSG_ADD_EXISTING_CONNECTION, args).sendToTarget();
         }
     };
 

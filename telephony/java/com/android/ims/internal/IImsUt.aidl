@@ -74,17 +74,25 @@ interface IImsUt {
     /**
      * Updates the configuration of the call barring.
      */
-    int updateCallBarring(int cbType, boolean enable, in String[] barrList);
+    int updateCallBarring(int cbType, int action, in String[] barrList);
 
     /**
      * Updates the configuration of the call forward.
      */
-    int updateCallForward(int action, int condition, String number, int timeSeconds);
+    int updateCallForward(int action, int condition, String number,
+            int serviceClass, int timeSeconds);
+
+    /**
+     * Updates the configuration of the call forward unconditional timer.
+     */
+    int updateCallForwardUncondTimer(int startHour, int startMinute, int endHour,
+            int endMinute, int action, int condition, String number);
+
 
     /**
      * Updates the configuration of the call waiting.
      */
-    int updateCallWaiting(boolean enable);
+    int updateCallWaiting(boolean enable, int serviceClass);
 
     /**
      * Updates the configuration of the CLIR supplementary service.

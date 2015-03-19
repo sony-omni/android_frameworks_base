@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.telephony.TelephonyManager;
+import android.telephony.SubscriptionManager;
 import android.util.Log;
 
 import com.android.internal.telecom.ITelecomService;
@@ -136,6 +137,14 @@ public class TelecomManager {
      */
     public static final String EXTRA_UNKNOWN_CALL_HANDLE =
             "android.telecom.extra.UNKNOWN_CALL_HANDLE";
+
+    /**
+     * Similar to {@link #ACTION_INCOMING_CALL}, but is used only by Telephony to add a new
+     * sim-initiated MO call for carrier testing and for conference scenarios
+     * @hide
+     */
+    public static final String EXTRA_UNKNOWN_CALL_STATE =
+            "codeaurora.telecom.extra.UNKNOWN_CALL_STATE";
 
     /**
      * Optional extra for {@link android.telephony.TelephonyManager#ACTION_PHONE_STATE_CHANGED}
@@ -799,6 +808,35 @@ public class TelecomManager {
             Log.e(TAG, "RemoteException attempting to get the current TTY mode.", e);
         }
         return TTY_MODE_OFF;
+    }
+
+    /**
+     * Returns current active subscription.
+     * @hide
+     */
+    public long getActiveSubscription() {
+        try {
+            if (isServiceConnected()) {
+                return getTelecomService().getActiveSubscription();
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "RemoteException attempting to get the active subsription.", e);
+        }
+        return SubscriptionManager.INVALID_SUB_ID;
+    }
+
+    /**
+     * switches to other active subscription.
+     * @hide
+     */
+    public void switchToOtherActiveSub(long subId) {
+        try {
+            if (isServiceConnected()) {
+                getTelecomService().switchToOtherActiveSub(subId);
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "RemoteException attempting to switchToOtherActiveSub.", e);
+        }
     }
 
     /**

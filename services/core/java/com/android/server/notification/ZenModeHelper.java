@@ -315,6 +315,8 @@ public class ZenModeHelper {
             /*if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
                 if (mZenMode == Global.ZEN_MODE_OFF) {
                     newZen = Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS;
+                } else if (mZenMode != Global.ZEN_MODE_NO_INTERRUPTIONS) {
+                    newZen = Global.ZEN_MODE_NO_INTERRUPTIONS;
                 }
             } else*/
             if ((ringerMode == AudioManager.RINGER_MODE_NORMAL

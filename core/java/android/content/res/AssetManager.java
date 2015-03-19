@@ -612,7 +612,9 @@ public final class AssetManager implements AutoCloseable {
     public final int addAssetPath(String path) {
         synchronized (this) {
             int res = addAssetPathNative(path);
-            makeStringBlocks(mStringBlocks);
+            if (mStringBlocks != null) {
+                makeStringBlocks(mStringBlocks);
+            }
             return res;
         }
     }
@@ -627,21 +629,17 @@ public final class AssetManager implements AutoCloseable {
      *
      * {@hide}
      */
-
     public final int addOverlayPath(String idmapPath) {
         synchronized (this) {
             int res = addOverlayPathNative(idmapPath);
-            makeStringBlocks(mStringBlocks);
+            if (mStringBlocks != null) {
+                makeStringBlocks(mStringBlocks);
+            }
             return res;
         }
     }
 
-    /**
-     * See addOverlayPath.
-     *
-     * {@hide}
-     */
-    public native final int addOverlayPathNative(String idmapPath);
+    private native final int addOverlayPathNative(String idmapPath);
 
     /**
      * Add multiple sets of assets to the asset manager at once.  See

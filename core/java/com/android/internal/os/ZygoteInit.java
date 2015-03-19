@@ -329,7 +329,6 @@ public class ZygoteInit {
                                 Log.v(TAG,
                                     " GC at " + Debug.getGlobalAllocSize());
                             }
-                            System.gc();
                             runtime.runFinalizationSync();
                             Debug.resetGlobalAllocSize();
                         }
@@ -349,7 +348,7 @@ public class ZygoteInit {
                         throw new RuntimeException(t);
                     }
                 }
-
+                System.gc();
                 Log.i(TAG, "...preloaded " + count + " classes in "
                         + (SystemClock.uptimeMillis()-startTime) + "ms.");
             } catch (IOException e) {
@@ -421,7 +420,6 @@ public class ZygoteInit {
                 if (false) {
                     Log.v(TAG, " GC at " + Debug.getGlobalAllocSize());
                 }
-                System.gc();
                 runtime.runFinalizationSync();
                 Debug.resetGlobalAllocSize();
             }
@@ -438,6 +436,7 @@ public class ZygoteInit {
                 }
             }
         }
+        System.gc();
         return N;
     }
 
@@ -449,7 +448,6 @@ public class ZygoteInit {
                 if (false) {
                     Log.v(TAG, " GC at " + Debug.getGlobalAllocSize());
                 }
-                System.gc();
                 runtime.runFinalizationSync();
                 Debug.resetGlobalAllocSize();
             }
@@ -466,6 +464,7 @@ public class ZygoteInit {
                 }
             }
         }
+        System.gc();
         return N;
     }
 
@@ -588,7 +587,7 @@ public class ZygoteInit {
         String args[] = {
             "--setuid=1000",
             "--setgid=1000",
-            "--setgroups=1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1018,1032,3001,3002,3003,3006,3007",
+            "--setgroups=1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1018,1021,1032,3001,3002,3003,3006,3007",
             "--capabilities=" + capabilities + "," + capabilities,
             "--runtime-init",
             "--nice-name=system_server",

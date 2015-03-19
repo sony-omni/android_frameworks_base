@@ -84,6 +84,7 @@ import android.service.voice.IVoiceInteractionSession;
 import android.util.EventLog;
 import android.util.Slog;
 import android.view.Display;
+import com.android.internal.app.ActivityTrigger;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -264,6 +265,8 @@ final class ActivityStack {
     }
 
     final Handler mHandler;
+
+    static final ActivityTrigger mActivityTrigger = new ActivityTrigger();
 
     final class ActivityStackHandler extends Handler {
         //public Handler() {
@@ -1241,6 +1244,9 @@ final class ActivityStack {
             final TaskRecord task = mTaskHistory.get(taskNdx);
             final ArrayList<ActivityRecord> activities = task.mActivities;
             for (int activityNdx = activities.size() - 1; activityNdx >= 0; --activityNdx) {
+                if(activityNdx >= activities.size()) {
+                    continue;
+                }
                 final ActivityRecord r = activities.get(activityNdx);
                 if (r.finishing) {
                     continue;
@@ -1600,6 +1606,7 @@ final class ActivityStack {
         if (DEBUG_SWITCH) Slog.v(TAG, "Resuming " + next);
 
         // Some activities may want to alter the system power management
+        mActivityTrigger.activityResumeTrigger(next.intent);
         mService.mPowerManager.handleAppChange(next.intent);
 
         // If we are currently pausing an activity, then don't do anything
@@ -1690,6 +1697,8 @@ final class ActivityStack {
                 // previous should actually be hidden depending on whether the
                 // new one is found to be full-screen or not.
                 if (prev.finishing) {
+                    if(prev.waitingVisible)
+                        mStackSupervisor.mWaitingVisibleActivities.add(prev);
                     mWindowManager.setAppVisibility(prev.appToken, false);
                     if (DEBUG_SWITCH) Slog.v(TAG, "Not waiting for visible to hide: "
                             + prev + ", waitingVisible="
@@ -2031,6 +2040,7 @@ final class ActivityStack {
         task.setFrontOfTask();
 
         r.putInHistory();
+        r.info.flags = mActivityTrigger.activityStartTrigger(r.intent, r.info.flags);
         if (!isHomeStack() || numActivities() > 0) {
             // We want to show the starting preview window if we are
             // switching to a new task, or the next activity's process is

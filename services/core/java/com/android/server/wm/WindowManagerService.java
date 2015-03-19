@@ -25,9 +25,9 @@ import android.os.SystemService;
 import android.util.ArraySet;
 import android.util.TimeUtils;
 import android.view.IWindowId;
-
 import android.view.IWindowSessionCallback;
 import android.view.WindowContentFrameStats;
+import com.android.server.display.DigitalPenOffScreenDisplayAdapter;
 import com.android.internal.app.IBatteryStats;
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.policy.impl.PhoneWindowManager;
@@ -52,6 +52,7 @@ import android.app.IActivityManager;
 import android.app.StatusBarManager;
 import android.app.admin.DevicePolicyManager;
 import android.animation.ValueAnimator;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -476,7 +477,7 @@ public class WindowManagerService extends IWindowManager.Stub
     /** All DisplayContents in the world, kept here */
     SparseArray<DisplayContent> mDisplayContents = new SparseArray<DisplayContent>(2);
 
-    int mRotation = 0;
+    int mRotation = SystemProperties.getInt("persist.panel.orientation", 0) / 90;
     int mForcedAppOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
     boolean mAltOrientation = false;
 
@@ -5748,6 +5749,10 @@ public class WindowManagerService extends IWindowManager.Stub
         } catch (RemoteException e) {
         }
 
+        // start QuickBoot to check if need restore from exception
+        if (SystemProperties.getBoolean("persist.sys.quickboot_ongoing", false))
+            checkQuickBootException();
+
         mPolicy.enableScreenAfterBoot();
 
         // Make sure the last requested orientation has been applied.
@@ -5764,6 +5769,15 @@ public class WindowManagerService extends IWindowManager.Stub
         }
         if (DEBUG_BOOT) Slog.i(TAG, "checkBootAnimationComplete: Animation complete!");
         return true;
+    }
+
+    private void checkQuickBootException() {
+        Intent intent = new Intent("org.codeaurora.action.QUICKBOOT");
+        intent.putExtra("mode", 2);
+        try {
+            mContext.startActivityAsUser(intent,UserHandle.CURRENT);
+        } catch (ActivityNotFoundException e) {
+        }
     }
 
     public void showBootMessage(final CharSequence msg, final boolean always) {
@@ -7088,13 +7102,38 @@ public class WindowManagerService extends IWindowManager.Stub
         return sw;
     }
 
+    public DisplayContent getDigitalPenOffScreenDisplayContentLocked() {
+        Display[] displays = mDisplayManager.getDisplays();
+        int displayId = -1;
+        for (Display display : displays) {
+            if (display.getName().equals(DigitalPenOffScreenDisplayAdapter.getDisplayName())) {
+                displayId = display.getDisplayId();
+            }
+        }
+        return getDisplayContentLocked(displayId);
+    }
+
     boolean computeScreenConfigurationLocked(Configuration config) {
+        // TODO(multidisplay): For now, apply Configuration to main screen
+        // and DigitalPenOffScreenDisplay only
+        DisplayContent displayContent = getDigitalPenOffScreenDisplayContentLocked();
+        if (null != displayContent &&
+            !DigitalPenOffScreenDisplayAdapter.isDigitalPenDisabled()) {
+            if (false == computeScreenConfigurationDisplayLocked(config, displayContent)) {
+                Slog.i(TAG,
+                       "computeScreenConfigurationLocked returned false for DigitalPenOffScreenDisplay");
+            }
+        }
+
+        displayContent = getDefaultDisplayContentLocked();
+        return computeScreenConfigurationDisplayLocked(config, displayContent);
+    }
+
+    private boolean computeScreenConfigurationDisplayLocked(Configuration config,
+                                                    DisplayContent displayContent) {
         if (!mDisplayReady) {
             return false;
         }
-
-        // TODO(multidisplay): For now, apply Configuration to main screen only.
-        final DisplayContent displayContent = getDefaultDisplayContentLocked();
 
         // Use the effective "visual" dimensions based on current rotation
         final boolean rotated = (mRotation == Surface.ROTATION_90
@@ -9430,6 +9469,12 @@ public class WindowManagerService extends IWindowManager.Stub
         }
     }
 
+    private void handlePrivateFlagFullyTransparent(WindowState w) {
+        final WindowManager.LayoutParams attrs = w.mAttrs;
+        final WindowStateAnimator winAnimator = w.mWinAnimator;
+        winAnimator.updateFullyTransparent(attrs);
+    }
+
     private void updateAllDrawnLocked(DisplayContent displayContent) {
         // See if any windows have been drawn, so they (and others
         // associated with them) can now be shown.
@@ -9630,6 +9675,8 @@ public class WindowManagerService extends IWindowManager.Stub
                     if (stack != null && !stack.testDimmingTag()) {
                         handleFlagDimBehind(w);
                     }
+
+                    handlePrivateFlagFullyTransparent(w);
 
                     if (isDefaultDisplay && obscuredChanged && (mWallpaperTarget == w)
                             && w.isVisibleLw()) {
@@ -10336,6 +10383,8 @@ public class WindowManagerService extends IWindowManager.Stub
                 // doing this part.
                 mInputMonitor.setInputFocusLw(mCurrentFocus, updateInputWindows);
             }
+
+            mInputManager.notifyWindowFocusChanged();
 
             Trace.traceEnd(Trace.TRACE_TAG_WINDOW_MANAGER);
             return true;

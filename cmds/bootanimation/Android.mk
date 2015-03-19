@@ -21,7 +21,19 @@ LOCAL_SHARED_LIBRARIES := \
     libEGL \
     libGLESv1_CM \
     libgui \
-    libtinyalsa
+    libtinyalsa \
+    libmedia
+
+ifneq ($(TARGET_BOOTANIMATION_TEXTURE_CACHE),)
+    LOCAL_CFLAGS += -DBOARD_USES_TEXTURE_CACHE
+    ifeq ($(TARGET_BOOTANIMATION_TEXTURE_CACHE),false)
+        LOCAL_CFLAGS += -DNO_TEXTURE_CACHE
+    endif
+endif
+
+ifeq ($(TARGET_BOOTANIMATION_USE_RGB565),true)
+LOCAL_CFLAGS += -DUSE_565
+endif
 
 ifneq ($(TARGET_BOOTANIMATION_TEXTURE_CACHE),)
     LOCAL_CFLAGS += -DBOARD_USES_TEXTURE_CACHE

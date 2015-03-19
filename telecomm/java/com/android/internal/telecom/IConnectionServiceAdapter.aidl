@@ -18,12 +18,13 @@ package com.android.internal.telecom;
 
 import android.app.PendingIntent;
 import android.net.Uri;
+import android.os.Bundle;
 import android.telecom.ConnectionRequest;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableConnection;
 import android.telecom.ParcelableConference;
+import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
-
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telecom.RemoteServiceCallback;
 
@@ -47,6 +48,9 @@ oneway interface IConnectionServiceAdapter {
     void setDialing(String callId);
 
     void setDisconnected(String callId, in DisconnectCause disconnectCause);
+
+    void setDisconnectedWithSsNotification(String callId, int disconnectCause,
+            String disconnectMessage, int type, int code);
 
     void setOnHold(String callId);
 
@@ -77,4 +81,12 @@ oneway interface IConnectionServiceAdapter {
     void setCallerDisplayName(String callId, String callerDisplayName, int presentation);
 
     void setConferenceableConnections(String callId, in List<String> conferenceableCallIds);
+
+    void setPhoneAccountHandle(String callId, in PhoneAccountHandle pHandle);
+
+    void setCallSubstate(String callId, int callSubstate);
+
+    void setExtras(String callId, in Bundle extras);
+
+    void addExistingConnection(String callId, in ParcelableConnection connection);
 }

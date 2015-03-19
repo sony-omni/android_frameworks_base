@@ -358,8 +358,8 @@ public class KeyguardViewMediator extends SystemUI {
         }
 
         @Override
-        public void onSimStateChanged(IccCardConstants.State simState) {
-            if (DEBUG) Log.d(TAG, "onSimStateChanged: " + simState);
+        public void onSimStateChanged(long subId, IccCardConstants.State simState) {
+            if (DEBUG) Log.d(TAG, "onSimStateChangedUsingSubId: " + simState + ", subId=" + subId);
 
             switch (simState) {
                 case NOT_READY:
@@ -911,11 +911,14 @@ public class KeyguardViewMediator extends SystemUI {
         final boolean requireSim = !SystemProperties.getBoolean("keyguard.no_require_sim",
                 false);
         final boolean provisioned = mUpdateMonitor.isDeviceProvisioned();
-        final IccCardConstants.State state = mUpdateMonitor.getSimState();
-        final boolean lockedOrMissing = state.isPinLocked()
-                || ((state == IccCardConstants.State.ABSENT
-                || state == IccCardConstants.State.PERM_DISABLED)
-                && requireSim);
+        boolean lockedOrMissing = false;
+        for (int i = 0; i < mUpdateMonitor.getNumPhones(); i++) {
+            long subId = mUpdateMonitor.getSubIdByPhoneId(i);
+            if (isSimLockedOrMissing(subId, requireSim)) {
+                lockedOrMissing = true;
+                break;
+            }
+        }
 
         if (!lockedOrMissing && !provisioned) {
             if (DEBUG) Log.d(TAG, "doKeyguard: not showing because device isn't provisioned"
@@ -938,6 +941,15 @@ public class KeyguardViewMediator extends SystemUI {
 
         if (DEBUG) Log.d(TAG, "doKeyguard: showing the lock screen");
         showLocked(options);
+    }
+
+    private boolean isSimLockedOrMissing (long subId, boolean requireSim) {
+        IccCardConstants.State state = mUpdateMonitor.getSimState(subId);
+        boolean simLockedOrMissing = (state != null && state.isPinLocked())
+                || ((state == IccCardConstants.State.ABSENT
+                || state == IccCardConstants.State.PERM_DISABLED)
+                && requireSim);
+        return simLockedOrMissing;
     }
 
     /**

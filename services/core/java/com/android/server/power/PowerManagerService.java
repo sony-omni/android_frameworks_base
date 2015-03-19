@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ import com.android.server.lights.LightsManager;
 import com.android.server.Watchdog;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -70,6 +72,7 @@ import android.view.WindowManagerPolicy;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.List;
 
 import libcore.util.Objects;
 
@@ -152,6 +155,9 @@ public final class PowerManagerService extends SystemService
     // Power hints defined in hardware/libhardware/include/hardware/power.h.
     private static final int POWER_HINT_INTERACTION = 2;
     private static final int POWER_HINT_LOW_POWER = 5;
+
+    // Config value for NSRM
+    private static final int DPM_CONFIG_FEATURE_MASK_NSRM = 0x00000004;
 
     private final Context mContext;
     private final ServiceThread mHandlerThread;
@@ -423,6 +429,8 @@ public final class PowerManagerService extends SystemService
     private final ArrayList<PowerManagerInternal.LowPowerModeListener> mLowPowerModeListeners
             = new ArrayList<PowerManagerInternal.LowPowerModeListener>();
 
+    //track the blocked uids.
+    private final ArrayList<Integer> mBlockedUids = new ArrayList<Integer>();
     // power profile support
     private PowerProfileManager mProfileManager;
     private boolean mProfilesSupported;
@@ -735,6 +743,15 @@ public final class PowerManagerService extends SystemService
     private void acquireWakeLockInternal(IBinder lock, int flags, String tag, String packageName,
             WorkSource ws, String historyTag, int uid, int pid) {
         synchronized (mLock) {
+            if(mBlockedUids.contains(new Integer(uid)) && uid != Process.myUid()) {
+                //wakelock acquisition for blocked uid, do not acquire.
+                if (DEBUG_SPEW) {
+                    Slog.d(TAG, "uid is blocked not acquiring wakeLock flags=0x" +
+                            Integer.toHexString(flags) + " tag=" + tag + " uid=" + uid +
+                            " pid =" + pid);
+                }
+                return;
+            }
             if (DEBUG_SPEW) {
                 Slog.d(TAG, "acquireWakeLockInternal: lock=" + Objects.hashCode(lock)
                         + ", flags=0x" + Integer.toHexString(flags)
@@ -861,13 +878,23 @@ public final class PowerManagerService extends SystemService
             int callingUid) {
         synchronized (mLock) {
             int index = findWakeLockIndexLocked(lock);
+            int value = SystemProperties.getInt("persist.dpm.feature", 0);
+            boolean isNsrmEnabled = false;
+
+            if ((value & DPM_CONFIG_FEATURE_MASK_NSRM) == DPM_CONFIG_FEATURE_MASK_NSRM)
+                isNsrmEnabled = true;
+
             if (index < 0) {
                 if (DEBUG_SPEW) {
                     Slog.d(TAG, "updateWakeLockWorkSourceInternal: lock=" + Objects.hashCode(lock)
                             + " [not found], ws=" + ws);
                 }
+                if (!isNsrmEnabled) {
                 throw new IllegalArgumentException("Wake lock not active: " + lock
                         + " from uid " + callingUid);
+                } else {
+                    return;
+                }
             }
 
             WakeLock wakeLock = mWakeLocks.get(index);
@@ -884,6 +911,21 @@ public final class PowerManagerService extends SystemService
                 wakeLock.updateWorkSource(ws);
             }
         }
+    }
+
+    private boolean checkWorkSourceObjectId(int uid, WakeLock wl) {
+        try {
+            for (int index = 0; index < wl.mWorkSource.size(); index++) {
+                if (uid == wl.mWorkSource.get(index)) {
+                    if (DEBUG_SPEW) Slog.v(TAG, "WS uid matched");
+                    return true;
+                }
+            }
+        }
+        catch (Exception e) {
+            return false;
+        }
+        return false;
     }
 
     private int findWakeLockIndexLocked(IBinder lock) {
@@ -941,6 +983,24 @@ public final class PowerManagerService extends SystemService
                     return false;
             }
         }
+    }
+
+    private boolean isQuickBootCall() {
+
+        ActivityManager activityManager = (ActivityManager) mContext
+                .getSystemService(Context.ACTIVITY_SERVICE);
+
+        List<ActivityManager.RunningAppProcessInfo> runningList = activityManager
+                .getRunningAppProcesses();
+        int callingPid = Binder.getCallingPid();
+        for (ActivityManager.RunningAppProcessInfo processInfo : runningList) {
+            if (processInfo.pid == callingPid) {
+                String process = processInfo.processName;
+                if ("com.qapp.quickboot".equals(process))
+                    return true;
+            }
+        }
+        return false;
     }
 
     // Called from native code.
@@ -1046,6 +1106,17 @@ public final class PowerManagerService extends SystemService
             Trace.traceEnd(Trace.TRACE_TAG_POWER);
         }
         return true;
+    }
+
+    private void enableQbCharger(boolean enable) {
+        if (SystemProperties.getInt("sys.quickboot.enable", 0) == 1 &&
+                SystemProperties.getInt("sys.quickboot.poweroff", 0) != 1) {
+            // only handle "charged" event, qbcharger process will handle
+            // "uncharged" event itself
+            if (enable && mIsPowered && !isInteractiveInternal()) {
+                SystemProperties.set("sys.qbcharger.enable", "true");
+            }
+        }
     }
 
     private void goToSleepInternal(long eventTime, int reason, int flags, int uid) {
@@ -1283,6 +1354,7 @@ public final class PowerManagerService extends SystemService
                         + ", mBatteryLevel=" + mBatteryLevel);
             }
 
+            enableQbCharger(mIsPowered);
             if (wasPowered != mIsPowered || oldPlugType != mPlugType) {
                 mDirty |= DIRTY_IS_POWERED;
 
@@ -1334,6 +1406,10 @@ public final class PowerManagerService extends SystemService
             boolean wasPowered, int oldPlugType, boolean dockedOnWirelessCharger) {
         // Don't wake when powered unless configured to do so.
         if (!mWakeUpWhenPluggedOrUnpluggedConfig) {
+            return false;
+        }
+
+       if (SystemProperties.getInt("sys.quickboot.enable", 0) == 1) {
             return false;
         }
 
@@ -2927,6 +3003,14 @@ public final class PowerManagerService extends SystemService
                 throw new IllegalArgumentException("event time must not be in the future");
             }
 
+            // check wakeup caller under QuickBoot mode
+            if (SystemProperties.getInt("sys.quickboot.enable", 0) == 1) {
+                if (!isQuickBootCall()) {
+                    Slog.d(TAG, "ignore wakeup request under QuickBoot");
+                    return;
+                }
+            }
+
             mContext.enforceCallingOrSelfPermission(
                     android.Manifest.permission.DEVICE_POWER, null);
 
@@ -3189,6 +3273,43 @@ public final class PowerManagerService extends SystemService
             }
         }
 
+        /* updates the blocked uids, so if a wake lock is acquired for it
+         * can be released.
+         */
+        public void updateBlockedUids(int uid, boolean isBlocked) {
+
+            if (DEBUG_SPEW) Slog.v(TAG, "updateBlockedUids: uid = " + uid + "isBlocked = " + isBlocked);
+
+            if (Binder.getCallingUid() != Process.SYSTEM_UID) {
+                if (DEBUG_SPEW) Slog.v(TAG, "UpdateBlockedUids is not allowed");
+                return;
+            }
+
+            synchronized(mLock) {
+                if(isBlocked) {
+                    mBlockedUids.add(new Integer(uid));
+                    for (int index = 0; index < mWakeLocks.size(); index++) {
+                        WakeLock wl = mWakeLocks.get(index);
+                        if(wl != null) {
+                            if(wl.mTag.startsWith("*sync*") && wl.mOwnerUid == Process.SYSTEM_UID) {
+                                releaseWakeLockInternal(wl.mLock, wl.mFlags);
+                                index--;
+                                if (DEBUG_SPEW) Slog.v(TAG, "Internally releasing the wakelock"
+                                        + "acquired by SyncManager");
+                                continue;
+                            }
+                            // release the wakelock for the blocked uid
+                            if (wl.mOwnerUid == uid || checkWorkSourceObjectId(uid, wl)) {
+                                releaseWakeLockInternal(wl.mLock, wl.mFlags);
+                                index--;
+                                if (DEBUG_SPEW) Slog.v(TAG, "Internally releasing it");
+                            }
+                        }
+                    }
+                }
+                else {
+                    mBlockedUids.remove(new Integer(uid));
+                }
         @Override // Binder call
         public String getCurrentPowerProfile() {
             if (!mSystemReady) {

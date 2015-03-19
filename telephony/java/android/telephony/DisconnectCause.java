@@ -160,11 +160,86 @@ public class DisconnectCause {
      */
     public static final int OUTGOING_CANCELED = 44;
 
+    /**
+     * Stk Call Control modified DIAL request to USSD request.
+     * {@hide}
+     */
+    public static final int DIAL_MODIFIED_TO_USSD          = 45;
+    /**
+     * Stk Call Control modified DIAL request to SS request.
+     * {@hide}
+     */
+    public static final int DIAL_MODIFIED_TO_SS            = 46;
+    /**
+     * Stk Call Control modified DIAL request to DIAL with modified data.
+     * {@hide}
+     */
+    public static final int DIAL_MODIFIED_TO_DIAL          = 47;
+
+    public static final int NO_CIRCUIT_AVAIL = 48;
+    public static final int NO_ROUTE_TO_DESTINAON = 49;
+    public static final int OPERATOR_DETERMINED_BARRING = 50;
+    public static final int CALL_FAIL_NO_USER_RESPONDING = 51;
+    public static final int CALL_FAIL_NO_ANSWER_FROM_USER = 52;
+    public static final int CALL_FAIL_DESTINATION_OUT_OF_ORDER = 53;
+    public static final int BEARER_CAPABILITY_NOT_AUTHORIZED = 54;
+    public static final int CHANNEL_UNACCEPTABLE = 55;
+    public static final int CALL_REJECTED = 56;
+    public static final int NUMBER_CHANGED = 57;
+    public static final int PREEMPTION = 58;
+    public static final int FACILITY_REJECTED = 59;
+    public static final int RESP_TO_STATUS_ENQUIRY = 60;
+    public static final int NORMAL_UNSPECIFIED = 61;
+    public static final int NETWORK_OUT_OF_ORDER = 62;
+    public static final int TEMPORARY_FAILURE = 63;
+    public static final int SWITCHING_EQUIPMENT_CONGESTION = 64;
+    public static final int ACCESS_INFORMATION_DISCARDED = 65;
+    public static final int REQUESTED_CIRCUIT_OR_CHANNEL_NOT_AVAILABLE = 66;
+    public static final int RESOURCES_UNAVAILABLE_OR_UNSPECIFIED = 67;
+    public static final int QOS_UNAVAILABLE = 68;
+    public static final int REQUESTED_FACILITY_NOT_SUBSCRIBED = 69;
+    public static final int INCOMING_CALLS_BARRED_WITHIN_CUG = 70;
+    public static final int BEARER_CAPABILITY_UNAVAILABLE = 71;
+    public static final int SERVICE_OPTION_NOT_AVAILABLE = 72;
+    public static final int BEARER_SERVICE_NOT_IMPLEMENTED = 73;
+    public static final int REQUESTED_FACILITY_NOT_IMPLEMENTED = 74;
+    public static final int ONLY_DIGITAL_INFORMATION_BEARER_AVAILABLE = 75;
+    public static final int SERVICE_OR_OPTION_NOT_IMPLEMENTED = 76;
+    public static final int INVALID_TRANSACTION_IDENTIFIER = 77;
+    public static final int USER_NOT_MEMBER_OF_CUG = 78;
+    public static final int INCOMPATIBLE_DESTINATION = 79;
+    public static final int INVALID_TRANSIT_NW_SELECTION = 80;
+    public static final int SEMANTICALLY_INCORRECT_MESSAGE = 81;
+    public static final int INVALID_MANDATORY_INFORMATION = 82;
+    public static final int MESSAGE_TYPE_NON_IMPLEMENTED = 83;
+    public static final int MESSAGE_TYPE_NOT_COMPATIBLE_WITH_PROTOCOL_STATE = 84;
+    public static final int INFORMATION_ELEMENT_NON_EXISTENT = 85;
+    public static final int CONDITIONAL_IE_ERROR = 86;
+    public static final int MESSAGE_NOT_COMPATIBLE_WITH_PROTOCOL_STATE = 87;
+    public static final int RECOVERY_ON_TIMER_EXPIRED = 88;
+    public static final int PROTOCOL_ERROR_UNSPECIFIED = 89;
+    public static final int INTERWORKING_UNSPECIFIED = 90;
+    /**
+     * The call, which was an IMS call, disconnected because it merged with another call.
+     */
+    public static final int IMS_MERGED_SUCCESSFULLY = 91;
+
+    //*********************************************************************************************
+    // When adding a disconnect type:
+    // 1) Please assign the new type the next id value below.
+    // 2) Increment the next id value below to a new value.
+    // 3) Update MAXIMUM_VALID_VALUE to the new disconnect type.
+    // 4) Update toString() with the newly added disconnect type.
+    // 5) Update android.telecom.DisconnectCauseUtil with any mappings to a telecom.DisconnectCause.
+    //
+    // NextId: 92
+    //*********************************************************************************************
+
     /** Smallest valid value for call disconnect codes. */
     public static final int MINIMUM_VALID_VALUE = NOT_DISCONNECTED;
 
     /** Largest valid value for call disconnect codes. */
-    public static final int MAXIMUM_VALID_VALUE = OUTGOING_CANCELED;
+    public static final int MAXIMUM_VALID_VALUE = IMS_MERGED_SUCCESSFULLY;
 
     /** Private constructor to avoid class instantiation. */
     private DisconnectCause() {
@@ -256,12 +331,20 @@ public class DisconnectCause {
             return "CDMA_CALL_LOST";
         case EXITED_ECM:
             return "EXITED_ECM";
+        case DIAL_MODIFIED_TO_USSD:
+            return "DIAL_MODIFIED_TO_USSD";
+        case DIAL_MODIFIED_TO_SS:
+            return "DIAL_MODIFIED_TO_SS";
+        case DIAL_MODIFIED_TO_DIAL:
+            return "DIAL_MODIFIED_TO_DIAL";
         case ERROR_UNSPECIFIED:
             return "ERROR_UNSPECIFIED";
         case OUTGOING_FAILURE:
             return "OUTGOING_FAILURE";
         case OUTGOING_CANCELED:
             return "OUTGOING_CANCELED";
+        case IMS_MERGED_SUCCESSFULLY:
+            return "IMS_MERGED_SUCCESSFULLY";
         default:
             return "INVALID: " + cause;
         }

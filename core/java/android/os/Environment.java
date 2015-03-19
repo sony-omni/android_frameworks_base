@@ -19,10 +19,12 @@ package android.os;
 import android.app.admin.DevicePolicyManager;
 import android.content.Context;
 import android.os.storage.IMountService;
+import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.internal.annotations.GuardedBy;
 import com.google.android.collect.Lists;
 
 import java.io.File;
@@ -69,8 +71,31 @@ public class Environment {
     private static UserEnvironment sCurrentUser;
     private static boolean sUserRequired;
 
+    private static final Object sLock = new Object();
+    @GuardedBy("sLock")
+
+    private static volatile StorageVolume sNoEmulatedVolume;
+
     static {
         initForCurrentUser();
+    }
+
+    private static StorageVolume getNoEmulatedVolume() {
+        if (sNoEmulatedVolume == null) {
+            synchronized (sLock) {
+                if (sNoEmulatedVolume == null) {
+                    try {
+                        IMountService mountService = IMountService.Stub.asInterface(ServiceManager
+                                .getService("mount"));
+                        final StorageVolume[] volumes = mountService.getVolumeList();
+                        sNoEmulatedVolume = StorageManager.getNoEmulatedVolume(volumes);
+                    } catch (Exception e) {
+                        Log.e(TAG, "couldn't talk to MountService", e);
+                    }
+                }
+            }
+        }
+        return sNoEmulatedVolume;
     }
 
     /** {@hide} */
@@ -150,6 +175,11 @@ public class Environment {
             return mExternalDirsForApp[0];
         }
 
+        /** {@hide} */
+        public File getSecondaryStorageDirectory() {
+            return mExternalDirsForApp[1];
+        }
+
         @Deprecated
         public File getExternalStoragePublicDirectory(String type) {
             return buildExternalStoragePublicDirs(type)[0];
@@ -177,6 +207,10 @@ public class Environment {
 
         public File[] buildExternalStorageAndroidObbDirs() {
             return buildPaths(mExternalDirsForApp, DIR_ANDROID, DIR_OBB);
+        }
+
+        public File[] buildExternalStorageAndroidObbDirsForVold() {
+            return buildPaths(mExternalDirsForVold, DIR_ANDROID, DIR_OBB);
         }
 
         public File[] buildExternalStorageAppDataDirs(String packageName) {
@@ -390,6 +424,12 @@ public class Environment {
     public static File getExternalStorageDirectory() {
         throwIfUserRequired();
         return sCurrentUser.getExternalDirsForApp()[0];
+    }
+
+    /** {@hide} */
+    public static File getSecondaryStorageDirectory() {
+        throwIfUserRequired();
+        return sCurrentUser.getExternalDirsForApp()[1];
     }
 
     /** {@hide} */
@@ -705,6 +745,12 @@ public class Environment {
         return getExternalStorageState(path);
     }
 
+    /** {@hide} */
+    public static String getSecondaryStorageState() {
+        final File externalDir = sCurrentUser.getExternalDirsForApp()[1];
+        return getStorageState(externalDir);
+    }
+
     /**
      * Returns the current state of the storage device that provides the given
      * path.
@@ -740,6 +786,12 @@ public class Environment {
         if (isStorageDisabled()) return false;
         final File externalDir = sCurrentUser.getExternalDirsForApp()[0];
         return isExternalStorageRemovable(externalDir);
+    }
+
+    /** {@hide} */
+    public static boolean isNoEmulatedStorageExist() {
+        final StorageVolume volume = getNoEmulatedVolume();
+        return (volume != null);
     }
 
     /**

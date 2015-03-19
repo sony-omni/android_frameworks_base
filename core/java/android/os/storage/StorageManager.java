@@ -39,6 +39,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import com.google.android.collect.Lists;
 
 /**
  * StorageManager is the interface to the systems storage service. The storage
@@ -614,6 +615,16 @@ public class StorageManager {
         return null;
     }
 
+    /**{@hide} */
+    public static StorageVolume getNoEmulatedVolume(StorageVolume[] volumes) {
+        for (StorageVolume volume : volumes) {
+            if (!volume.isEmulated()) {
+                return volume;
+            }
+        }
+        return null;
+    }
+
     private static final int DEFAULT_THRESHOLD_PERCENTAGE = 10;
     private static final long DEFAULT_THRESHOLD_MAX_BYTES = 500 * MB_IN_BYTES;
     private static final long DEFAULT_FULL_THRESHOLD_BYTES = MB_IN_BYTES;
@@ -654,6 +665,22 @@ public class StorageManager {
     public long getStorageFullBytes(File path) {
         return Settings.Global.getLong(mResolver, Settings.Global.SYS_STORAGE_FULL_THRESHOLD_BYTES,
                 DEFAULT_FULL_THRESHOLD_BYTES);
+    }
+
+    /**
+     * Return the list of physical external storages
+     *
+     * @hide
+     */
+    public static ArrayList<StorageVolume> getPhysicalExternalVolume(StorageVolume[] volumesphy) {
+        int count = volumesphy.length;
+        ArrayList<StorageVolume> volumes = Lists.newArrayList();
+        for (int i=0; i < count ; i++) {
+            if (!volumesphy[i].isEmulated()) {
+                volumes.add(volumesphy[i]);
+            }
+        }
+        return volumes;
     }
 
     /// Consts to match the password types in cryptfs.h

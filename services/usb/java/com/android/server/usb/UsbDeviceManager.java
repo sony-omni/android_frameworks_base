@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2011 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +19,7 @@
 
 package com.android.server.usb;
 
+import android.app.AppOpsManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -485,7 +489,8 @@ public class UsbDeviceManager {
             // with OEM specific mode.
             if (functions != null && makeDefault && !needsOemUsbOverride()) {
 
-                if (mAdbEnabled) {
+                if (!UsbManager.USB_FUNCTION_CHARGING.equals(functions)
+                        && mAdbEnabled) {
                     functions = addFunction(functions, UsbManager.USB_FUNCTION_ADB);
                 } else {
                     functions = removeFunction(functions, UsbManager.USB_FUNCTION_ADB);
@@ -517,7 +522,8 @@ public class UsbDeviceManager {
                 // Override with bootmode specific usb mode if needed
                 functions = processOemUsbOverride(functions);
 
-                if (mAdbEnabled) {
+                if (!UsbManager.USB_FUNCTION_CHARGING.equals(functions)
+                        && mAdbEnabled) {
                     functions = addFunction(functions, UsbManager.USB_FUNCTION_ADB);
                 } else {
                     functions = removeFunction(functions, UsbManager.USB_FUNCTION_ADB);
@@ -668,6 +674,10 @@ public class UsbDeviceManager {
                     if (mDebuggingManager != null) {
                         mDebuggingManager.setAdbEnabled(mAdbEnabled);
                     }
+                    if (mContext.getResources().getBoolean(com.android.internal.
+                            R.bool.always_popup_usb_computer_connection_option)) {
+                        updateState(bootState(mConnected, mConfigured));
+                    }
                     break;
                 case MSG_USER_SWITCHED: {
                     UserManager userManager =
@@ -694,6 +704,18 @@ public class UsbDeviceManager {
             }
         }
 
+        private String bootState(boolean isConnected, boolean isConfigured) {
+            String bootState = "CONNECTED";
+            if (!isConnected && !isConfigured) {
+                bootState = "DISCONNECTED";
+            } else if (isConnected && !isConfigured) {
+                bootState = "CONNECTED";
+            } else if (isConnected && isConfigured) {
+                bootState = "CONFIGURED";
+            }
+            return bootState;
+        }
+
         public UsbAccessory getCurrentAccessory() {
             return mCurrentAccessory;
         }
@@ -703,7 +725,9 @@ public class UsbDeviceManager {
             int id = 0;
             Resources r = mContext.getResources();
             if (mConnected) {
-                if (containsFunction(mCurrentFunctions, UsbManager.USB_FUNCTION_MTP)) {
+                if (containsFunction(mCurrentFunctions, UsbManager.USB_FUNCTION_CHARGING)) {
+                    id = com.android.internal.R.string.usb_charging_notification_title;
+                } else if (containsFunction(mCurrentFunctions, UsbManager.USB_FUNCTION_MTP)) {
                     id = com.android.internal.R.string.usb_mtp_notification_title;
                 } else if (containsFunction(mCurrentFunctions, UsbManager.USB_FUNCTION_PTP)) {
                     id = com.android.internal.R.string.usb_ptp_notification_title;
@@ -713,13 +737,16 @@ public class UsbDeviceManager {
                 } else if (containsFunction(mCurrentFunctions, UsbManager.USB_FUNCTION_ACCESSORY)) {
                     id = com.android.internal.R.string.usb_accessory_notification_title;
                 } else {
+                    if (AppOpsManager.isStrictEnable()) {
+                        id = com.android.internal.R.string.usb_choose_notification_title;
+                    }
                     // There is a different notification for USB tethering so we don't need one here
                     //if (!containsFunction(mCurrentFunctions, UsbManager.USB_FUNCTION_RNDIS)) {
                     //    Slog.e(TAG, "No known USB function in updateUsbNotification");
                     //}
                 }
             }
-            if (id != mUsbNotificationId) {
+            if (id != mUsbNotificationId && mBootCompleted) {
                 // clear notification if title needs changing
                 if (mUsbNotificationId != 0) {
                     mNotificationManager.cancelAsUser(null, mUsbNotificationId,
@@ -753,6 +780,9 @@ public class UsbDeviceManager {
                     mNotificationManager.notifyAsUser(null, id, notification,
                             UserHandle.ALL);
                     mUsbNotificationId = id;
+                    if (r.getBoolean(com.android.internal.R.bool.
+                            always_popup_usb_computer_connection_option))
+                        mContext.startActivity(intent);
                 }
             }
         }
