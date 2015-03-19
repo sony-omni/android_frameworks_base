@@ -88,11 +88,6 @@ public interface TelephonyProperties
      */
     static final String PROPERTY_LTE_ON_CDMA_DEVICE = "telephony.lteOnCdmaDevice";
 
-    /**
-     * {@see BaseCommands#getLteOnGsmMode()}
-     */
-    static final String PROPERTY_LTE_ON_GSM_DEVICE = "telephony.lteOnGsmDevice";
-
     static final String CURRENT_ACTIVE_PHONE = "gsm.current.phone-type";
 
     //****** SIM Card
@@ -248,8 +243,4 @@ public interface TelephonyProperties
      *     or Earpiece, based on the default audio routing strategy.
      */
     static final String PROPERTY_IMS_AUDIO_OUTPUT = "persist.radio.ims.audio.output";
-    /**
-     * Set to true to indicates support for simultaneous voice and EvDo.
-     */
-    static final String PROPERTY_SVDO = "ro.ril.svdo";
 }
