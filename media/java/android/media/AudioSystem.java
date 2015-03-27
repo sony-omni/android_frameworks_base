@@ -16,7 +16,6 @@
 
 package android.media;
 
-import android.media.audiopolicy.AudioMix;
 import java.util.ArrayList;
 
 /* IF YOU CHANGE ANY OF THE CONSTANTS IN THIS FILE, DO NOT FORGET
@@ -567,7 +566,5 @@ public class AudioSystem
     public static final int AUDIO_HW_SYNC_INVALID = 0;
 
     public static native int getAudioHwSyncForSession(int sessionId);
-
-    public static native int registerPolicyMixes(ArrayList<AudioMix> mixes, boolean register);
 }
 

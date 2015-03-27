@@ -4344,13 +4344,6 @@ public class AudioService extends IAudioService.Stub {
                             }
                         }
                     }
-
-                    synchronized (mAudioPolicies) {
-                        for(AudioPolicyProxy policy : mAudioPolicies.values()) {
-                            policy.connectMixes();
-                        }
-                    }
-
                     // indicate the end of reconfiguration phase to audio HAL
                     AudioSystem.setParameters("restarting=false");
                     break;
@@ -6003,7 +5996,7 @@ public class AudioService extends IAudioService.Stub {
             if (mHasFocusListener) {
                 mMediaFocusControl.addFocusFollower(mPolicyToken);
             }
-            connectMixes();
+            updateMixes(AudioSystem.DEVICE_STATE_AVAILABLE);
         }
 
         public void binderDied() {
@@ -6025,11 +6018,23 @@ public class AudioService extends IAudioService.Stub {
             if (mHasFocusListener) {
                 mMediaFocusControl.removeFocusFollower(mPolicyToken);
             }
-            AudioSystem.registerPolicyMixes(mMixes, false);
+            updateMixes(AudioSystem.DEVICE_STATE_UNAVAILABLE);
         }
 
-        void connectMixes() {
-            AudioSystem.registerPolicyMixes(mMixes, true);
+        void updateMixes(int connectionState) {
+            for (AudioMix mix : mMixes) {
+                // TODO implement sending the mix attribute matching info to native audio policy
+                if (DEBUG_AP) {
+                    Log.v(TAG, "AudioPolicyProxy mix new connection state=" + connectionState
+                            + " addr=" + mix.getRegistration());
+                }
+                AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_IN_REMOTE_SUBMIX,
+                        connectionState,
+                        mix.getRegistration());
+                AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_OUT_REMOTE_SUBMIX,
+                        connectionState,
+                        mix.getRegistration());
+            }
         }
     };
 
