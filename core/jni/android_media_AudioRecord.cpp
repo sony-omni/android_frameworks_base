@@ -239,8 +239,7 @@ android_media_AudioRecord_setup(JNIEnv *env, jobject thiz, jobject weak_this,
         true,          // threadCanCallJava
         sessionId,
         AudioRecord::TRANSFER_DEFAULT,
-        flags,
-        paa);
+        flags);
 
     if (status != NO_ERROR) {
         ALOGE("Error creating AudioRecord instance: initialization check failed with status %d.",
